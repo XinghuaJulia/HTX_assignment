@@ -1,0 +1,32 @@
+{
+    "id": "scenario-abc123",
+    "status": "completed",
+    "scenario": {
+        "users": [
+            {
+                "id": "user-001",
+                "username": "alice",
+                "role": "employee"
+            }
+        ],
+        "devices": [
+            {
+                "id": "device-001",
+                "hostname": "WORKSTATION-01",
+                "os": "Windows"
+            }
+        ],
+        "events": [
+            {
+                "id": "event-001",
+                "type": "authentication",
+                "timestamp": "2025-01-10T10:00:00Z",
+                "actor_user_id": "user-001",
+                "device_id": "device-001",
+                "details": {
+                    "result": "success"
+                }
+            }
+        ]
+    }
+}
