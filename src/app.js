@@ -6,6 +6,7 @@ const validateScenario = require('./scenarioValidator')
 const {
   generateAndStoreScenario,
   getCompletedScenario,
+  getScenarioEvent,
 } = require('./scenarioService')
 
 const app = express()
@@ -37,6 +38,49 @@ app.post('/api/scenarios', async (request, response, next) => {
         id: job.id,
         status: job.status,
       })
+  } catch (error) {
+    return next(error)
+  }
+})
+
+app.get('/api/scenarios/:id/events', async (request, response, next) => {
+  try {
+    const job = await Scenario.findByPk(request.params.id)
+
+    if (!job) {
+      return response.status(404).json({
+        error: 'scenario_not_found',
+        message: `Scenario ${request.params.id} was not found`,
+      })
+    }
+
+    if (job.status !== 'completed') {
+      return response.status(409).json({
+        error: 'scenario_not_completed',
+        message: `Scenario ${job.id} has status ${job.status}`,
+      })
+    }
+
+    if (typeof request.query.event !== 'string' || !request.query.event) {
+      return response.status(400).json({
+        error: 'invalid_event_id',
+        message: 'event query parameter is required',
+      })
+    }
+
+    const event = await getScenarioEvent(job.id, request.query.event)
+
+    if (!event) {
+      return response.status(404).json({
+        error: 'event_not_found',
+        message: `Event ${request.query.event} was not found in ${job.id}`,
+      })
+    }
+
+    return response.status(200).json({
+      scenario_id: job.id,
+      event,
+    })
   } catch (error) {
     return next(error)
   }

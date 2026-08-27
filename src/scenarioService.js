@@ -113,6 +113,30 @@ const generateAndStoreScenario = async (scenarioId) => {
   }
 }
 
+const serializeEvent = (event) => ({
+  id: event.entityId,
+  type: event.type,
+  timestamp: event.timestamp.toISOString(),
+  actor_user_id: event.actorUser.entityId,
+  device_id: event.device.entityId,
+  details: event.details,
+})
+
+const getScenarioEvent = async (scenarioId, eventId) => {
+  const event = await Event.findOne({
+    where: {
+      scenarioId,
+      entityId: eventId,
+    },
+    include: [
+      { model: User, as: 'actorUser' },
+      { model: Device, as: 'device' },
+    ],
+  })
+
+  return event ? serializeEvent(event) : null
+}
+
 const getCompletedScenario = async (job) => {
   const [users, devices, events] = await Promise.all([
     User.findAll({
@@ -170,18 +194,12 @@ const getCompletedScenario = async (job) => {
       os: device.os,
       assigned_user_id: device.assignedUser.entityId,
     })),
-    events: events.map((event) => ({
-      id: event.entityId,
-      type: event.type,
-      timestamp: event.timestamp.toISOString(),
-      actor_user_id: event.actorUser.entityId,
-      device_id: event.device.entityId,
-      details: event.details,
-    })),
+    events: events.map(serializeEvent),
   }
 }
 
 module.exports = {
   generateAndStoreScenario,
   getCompletedScenario,
+  getScenarioEvent,
 }

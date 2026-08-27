@@ -160,6 +160,74 @@ test('equivalent API jobs return deterministic scenario content', async () => {
   assert.deepEqual(first.scenario, second.scenario)
 })
 
+test('GET /events returns one requested event', async () => {
+  const accepted = await request(app)
+    .post('/api/scenarios')
+    .send(validConfig)
+  const completed = await waitForCompletion(accepted.body.id)
+  const expectedEvent = completed.scenario.events.find(
+    (event) => event.id === 'event-003',
+  )
+
+  const response = await request(app)
+    .get(`/api/scenarios/${accepted.body.id}/events`)
+    .query({ event: 'event-003' })
+
+  assert.equal(response.status, 200)
+  assert.equal(response.body.scenario_id, accepted.body.id)
+  assert.deepEqual(response.body.event, expectedEvent)
+})
+
+test('GET /events requires an event query parameter', async () => {
+  const accepted = await request(app)
+    .post('/api/scenarios')
+    .send(validConfig)
+  await waitForCompletion(accepted.body.id)
+
+  const response = await request(app).get(
+    `/api/scenarios/${accepted.body.id}/events`,
+  )
+
+  assert.equal(response.status, 400)
+  assert.deepEqual(response.body, {
+    error: 'invalid_event_id',
+    message: 'event query parameter is required',
+  })
+})
+
+test('GET /events returns 404 for an unknown event', async () => {
+  const accepted = await request(app)
+    .post('/api/scenarios')
+    .send(validConfig)
+  await waitForCompletion(accepted.body.id)
+
+  const response = await request(app)
+    .get(`/api/scenarios/${accepted.body.id}/events`)
+    .query({ event: 'event-999' })
+
+  assert.equal(response.status, 404)
+  assert.equal(response.body.error, 'event_not_found')
+})
+
+test('GET /events rejects a scenario that is not completed', async () => {
+  await Scenario.create({
+    id: 'scenario-pending-events',
+    scenarioType: validConfig.scenario,
+    requestedUsers: validConfig.users,
+    requestedDevices: validConfig.devices,
+    requestedEvents: validConfig.events,
+    seed: validConfig.seed,
+    status: 'pending',
+  })
+
+  const response = await request(app)
+    .get('/api/scenarios/scenario-pending-events/events')
+    .query({ event: 'event-001' })
+
+  assert.equal(response.status, 409)
+  assert.equal(response.body.error, 'scenario_not_completed')
+})
+
 test('POST /validate reports a completed scenario as valid', async () => {
   const accepted = await request(app)
     .post('/api/scenarios')
