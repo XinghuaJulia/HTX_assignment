@@ -12,6 +12,10 @@ lerna-debug.log*
 node_modules
 dist-ssr
 *.local
+node_modules/
+scenarios.sqlite
+scenarios.sqlite-journal
+coverage/
 
 # Editor directories and files
 .vscode/*
