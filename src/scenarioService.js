@@ -1,4 +1,5 @@
 const generateScenario = require('./generator')
+const validateScenario = require('./scenarioValidator')
 const {
   sequelize,
   Scenario,
@@ -22,6 +23,17 @@ const generateAndStoreScenario = async (scenarioId) => {
       events: job.requestedEvents,
       seed: job.seed,
     })
+
+    const validation = validateScenario(generated, {
+      users: job.requestedUsers,
+      devices: job.requestedDevices,
+      events: job.requestedEvents,
+    })
+
+    if (!validation.valid) {
+      const messages = validation.errors.map((error) => error.message)
+      throw new Error(`Generated scenario is invalid: ${messages.join('; ')}`)
+    }
 
     await sequelize.transaction(async (transaction) => {
       const usersById = new Map()
