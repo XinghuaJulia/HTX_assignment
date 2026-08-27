@@ -1,9 +1,12 @@
-const REQUIRED_EVENT_TYPES = [
-  'authentication',
-  'process_execution',
-  'credential_access',
-  'network_connection',
-  'data_exfiltration',
+const ATTACK_CHAIN_STAGES = [
+  {
+    name: 'authentication_or_initial_access',
+    eventTypes: ['authentication', 'initial_access'],
+  },
+  { name: 'process_execution', eventTypes: ['process_execution'] },
+  { name: 'credential_access', eventTypes: ['credential_access'] },
+  { name: 'network_connection', eventTypes: ['network_connection'] },
+  { name: 'data_exfiltration', eventTypes: ['data_exfiltration'] },
 ]
 
 const validateScenario = (scenario, config) => {
@@ -127,23 +130,25 @@ const validateScenario = (scenario, config) => {
   }
 
   const eventIndexes = new Map()
-  for (const type of REQUIRED_EVENT_TYPES) {
-    const index = events.findIndex((event) => event?.type === type)
+  for (const stage of ATTACK_CHAIN_STAGES) {
+    const index = events.findIndex((event) =>
+      stage.eventTypes.includes(event?.type),
+    )
 
     if (index === -1) {
       addError(
         'missing_required_event',
-        `Missing required event type: ${type}`,
-        { event_type: type },
+        `Missing required event stage: ${stage.name}`,
+        { event_type: stage.name },
       )
     } else {
-      eventIndexes.set(type, index)
+      eventIndexes.set(stage.name, index)
     }
   }
 
-  for (let index = 1; index < REQUIRED_EVENT_TYPES.length; index += 1) {
-    const previousType = REQUIRED_EVENT_TYPES[index - 1]
-    const currentType = REQUIRED_EVENT_TYPES[index]
+  for (let index = 1; index < ATTACK_CHAIN_STAGES.length; index += 1) {
+    const previousType = ATTACK_CHAIN_STAGES[index - 1].name
+    const currentType = ATTACK_CHAIN_STAGES[index].name
 
     if (
       eventIndexes.has(previousType) &&
