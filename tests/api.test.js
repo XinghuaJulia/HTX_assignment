@@ -1,4 +1,4 @@
-const test = require('node:test')
+const { describe, test } = require('node:test')
 const assert = require('node:assert/strict')
 const request = require('supertest')
 
@@ -32,6 +32,7 @@ const waitForCompletion = async (scenarioId) => {
   assert.fail(`Scenario ${scenarioId} did not complete in time`)
 }
 
+describe('Scenario REST APIs', () => {
 test.beforeEach(async () => {
   await sequelize.sync({ force: true })
 })
@@ -150,4 +151,8 @@ test('equivalent API jobs return deterministic scenario content', async () => {
 
   assert.notEqual(first.id, second.id)
   assert.deepEqual(first.scenario, second.scenario)
+})
+
+test.todo('returns running while generation is in progress')
+test.todo('returns failed status when scenario generation throws')
 })

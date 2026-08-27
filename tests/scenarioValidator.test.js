@@ -1,4 +1,4 @@
-const test = require('node:test')
+const { describe, test } = require('node:test')
 const assert = require('node:assert/strict')
 const generateScenario = require('../src/generator')
 const validateScenario = require('../src/scenarioValidator')
@@ -16,6 +16,7 @@ const generatedScenario = () => generateScenario(config)
 const errorCodes = (scenario) =>
   validateScenario(scenario, config).errors.map((error) => error.code)
 
+describe('Scenario invariant validator', () => {
 test('accepts a valid generated scenario', () => {
   assert.deepEqual(validateScenario(generatedScenario(), config), {
     valid: true,
@@ -91,4 +92,10 @@ test('detects incorrectly ordered attack-chain events', () => {
   scenario.events[2] = processEvent
 
   assert.ok(errorCodes(scenario).includes('invalid_attack_chain_order'))
+})
+
+test.todo(
+  'detects a missing initial-access stage when no equivalent event exists',
+)
+test.todo('reports all the violationsin one validation result')
 })

@@ -1,4 +1,4 @@
-const test = require('node:test')
+const { describe, test } = require('node:test')
 const assert = require('node:assert/strict')
 const generateScenario = require('../src/generator')
 
@@ -10,6 +10,7 @@ const config = {
   seed: 42,
 }
 
+describe('Deterministic scenario generator', () => {
 test('generates equivalent output for the same configuration and seed', () => {
   assert.deepEqual(generateScenario(config), generateScenario(config))
 })
@@ -79,4 +80,10 @@ test('events are chronological and contain the required attack chain', () => {
     assert.ok(Number.isFinite(current))
     assert.ok(current >= previous)
   }
+})
+
+test.todo(
+  'supports the minimum configuration of one user, one device, and five events',
+)
+test.todo('generates different scenario content for different seeds')
 })
