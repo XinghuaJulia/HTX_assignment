@@ -27,7 +27,11 @@ module.exports = (sequelize) => {
         allowNull: false,
         field: 'requested_users',
         validate: {
-          isInt: true,
+          isInteger(value) {
+            if (!Number.isInteger(value)) {
+              throw new Error('users must be an integer')
+            }
+          },
           min: 1,
           max: 100,
         },
@@ -38,7 +42,11 @@ module.exports = (sequelize) => {
         allowNull: false,
         field: 'requested_devices',
         validate: {
-          isInt: true,
+          isInteger(value) {
+            if (!Number.isInteger(value)) {
+              throw new Error('devices must be an integer')
+            }
+          },
           min: 1,
           max: 100,
         },
@@ -49,7 +57,11 @@ module.exports = (sequelize) => {
         allowNull: false,
         field: 'requested_events',
         validate: {
-          isInt: true,
+          isInteger(value) {
+            if (!Number.isInteger(value)) {
+              throw new Error('events must be an integer')
+            }
+          },
           min: 5,
           max: 10_000,
         },
@@ -59,7 +71,11 @@ module.exports = (sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: false,
         validate: {
-          isInt: true,
+          isSafeInteger(value) {
+            if (!Number.isSafeInteger(value)) {
+              throw new Error('seed must be a safe integer')
+            }
+          },
         },
       },
 

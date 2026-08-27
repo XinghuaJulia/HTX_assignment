@@ -1,44 +1,20 @@
-const express = require('express');
-const app = express();
-const generateScenario = require('./src/generator')
+const app = require('./src/app')
+const { sequelize } = require('./src/models')
 
-const result = generateScenario({
-  scenario: 'credential_theft',
-  users: 2,
-  devices: 2,
-  events: 25,
-  seed: 42,
-})
+const PORT = process.env.PORT || 3000
 
-console.log("Generated scenario: %s", JSON.stringify(result, null, 2));
+const start = async () => {
+  try {
+    await sequelize.authenticate()
+    await sequelize.sync()
 
-app.get('/health', (request, response) => {
-  response.status(200).json({
-    status: 'ok',
-  })
-});
-
-app.post('/api/scenarios', (request, response) => {
-    temp_id = "scenario-abc123";
-
-
-
-    response.status(202).json({
-        id: temp_id,
-        status: 'pending',
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`)
     })
-});
+  } catch (error) {
+    console.error('Unable to start server:', error)
+    process.exit(1)
+  }
+}
 
-app.get('/api/scenarios/:id', (request, response) => {
-    id = request.params.id;
-
-    response.status(200).json({
-        id: request.params.id,
-        status: 'running',
-    })
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+start()
