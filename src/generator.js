@@ -1,9 +1,12 @@
-const REQUIRED_EVENT_TYPES = [
-  'authentication',
-  'process_execution',
-  'credential_access',
-  'network_connection',
-  'data_exfiltration',
+const ATTACK_CHAIN = [
+  {
+    stage: 'authentication_or_initial_access',
+    eventType: 'authentication',
+  },
+  { stage: 'process_execution', eventType: 'process_execution' },
+  { stage: 'credential_access', eventType: 'credential_access' },
+  { stage: 'network_connection', eventType: 'network_connection' },
+  { stage: 'data_exfiltration', eventType: 'data_exfiltration' },
 ]
 
 const USERNAMES = ['alex', 'jamie', 'morgan', 'riley', 'sam']
@@ -107,11 +110,18 @@ const generateScenario = (config) => {
 
   let timestamp = startTime
   const events = Array.from({ length: config.events }, (_, index) => {
-    const isAttackEvent = index < REQUIRED_EVENT_TYPES.length
+    const isAttackEvent = index < ATTACK_CHAIN.length
+    const attackStep = ATTACK_CHAIN[index]
     const type = isAttackEvent
-      ? REQUIRED_EVENT_TYPES[index]
+      ? attackStep.eventType
       : random.pick(BACKGROUND_EVENT_TYPES)
     const device = isAttackEvent ? attackDevice : random.pick(devices)
+    const details = eventDetails(type, random, isAttackEvent)
+
+    if (isAttackEvent) {
+      details.attack_stage = attackStep.stage
+      details.attack_sequence = index + 1
+    }
 
     const event = {
       id: formatId('event', index),
@@ -121,7 +131,7 @@ const generateScenario = (config) => {
         ? attackUserId
         : device.assigned_user_id,
       device_id: device.id,
-      details: eventDetails(type, random, isAttackEvent),
+      details,
     }
 
     timestamp += random.integer(1, 10) * 60_000
@@ -133,6 +143,14 @@ const generateScenario = (config) => {
       scenario: config.scenario,
       seed: config.seed,
       timeline_start: new Date(startTime).toISOString(),
+    },
+    ground_truth: {
+      attack_chain: ATTACK_CHAIN.map((step, index) => ({
+        sequence: index + 1,
+        stage: step.stage,
+        event_type: step.eventType,
+        event_id: formatId('event', index),
+      })),
     },
     users,
     devices,

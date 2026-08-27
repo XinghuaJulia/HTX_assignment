@@ -82,6 +82,22 @@ test('events are chronological and contain the required attack chain', () => {
   }
 })
 
+test('provides ground truth for the intended attack-chain events', () => {
+  const scenario = generateScenario(config)
+  const attackChain = scenario.ground_truth.attack_chain
+
+  assert.equal(attackChain.length, 5)
+
+  for (const step of attackChain) {
+    const event = scenario.events.find((item) => item.id === step.event_id)
+
+    assert.ok(event)
+    assert.equal(event.type, step.event_type)
+    assert.equal(event.details.attack_stage, step.stage)
+    assert.equal(event.details.attack_sequence, step.sequence)
+  }
+})
+
 test.todo(
   'supports the minimum configuration of one user, one device, and five events',
 )

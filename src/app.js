@@ -2,6 +2,7 @@ const crypto = require('node:crypto')
 const express = require('express')
 const { ValidationError } = require('sequelize')
 const { Scenario } = require('./models')
+const validateScenario = require('./scenarioValidator')
 const {
   generateAndStoreScenario,
   getCompletedScenario,
@@ -68,6 +69,41 @@ app.get('/api/scenarios/:id', async (request, response, next) => {
     }
 
     return response.status(200).json(body)
+  } catch (error) {
+    return next(error)
+  }
+})
+
+app.post('/api/scenarios/:id/validate', async (request, response, next) => {
+  try {
+    const job = await Scenario.findByPk(request.params.id)
+
+    if (!job) {
+      return response.status(404).json({
+        error: 'scenario_not_found',
+        message: `Scenario ${request.params.id} was not found`,
+      })
+    }
+
+    if (job.status !== 'completed') {
+      return response.status(409).json({
+        error: 'scenario_not_completed',
+        message: `Scenario ${job.id} has status ${job.status}`,
+      })
+    }
+
+    const scenario = await getCompletedScenario(job)
+    const validation = validateScenario(scenario, {
+      users: job.requestedUsers,
+      devices: job.requestedDevices,
+      events: job.requestedEvents,
+    })
+
+    return response.status(200).json({
+      id: job.id,
+      status: job.status,
+      ...validation,
+    })
   } catch (error) {
     return next(error)
   }

@@ -137,11 +137,27 @@ const getCompletedScenario = async (job) => {
     }),
   ])
 
+  const attackChain = events
+    .filter((event) => Number.isInteger(event.details?.attack_sequence))
+    .sort(
+      (first, second) =>
+        first.details.attack_sequence - second.details.attack_sequence,
+    )
+    .map((event) => ({
+      sequence: event.details.attack_sequence,
+      stage: event.details.attack_stage,
+      event_type: event.type,
+      event_id: event.entityId,
+    }))
+
   return {
     metadata: {
       scenario: job.scenarioType,
       seed: job.seed,
       timeline_start: events[0]?.timestamp.toISOString(),
+    },
+    ground_truth: {
+      attack_chain: attackChain,
     },
     users: users.map((user) => ({
       id: user.entityId,

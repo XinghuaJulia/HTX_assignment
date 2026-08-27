@@ -5,7 +5,7 @@ const request = require('supertest')
 process.env.NODE_ENV = 'test'
 
 const app = require('../src/app')
-const { sequelize } = require('../src/models')
+const { sequelize, Scenario } = require('../src/models')
 
 const validConfig = {
   scenario: 'credential_theft',
@@ -67,6 +67,7 @@ test('POST creates an asynchronous job that can be retrieved', async () => {
   assert.equal(completed.scenario.users.length, validConfig.users)
   assert.equal(completed.scenario.devices.length, validConfig.devices)
   assert.equal(completed.scenario.events.length, validConfig.events)
+  assert.equal(completed.scenario.ground_truth.attack_chain.length, 5)
 
   const userIds = new Set(completed.scenario.users.map((user) => user.id))
   const deviceIds = new Set(
@@ -80,6 +81,12 @@ test('POST creates an asynchronous job that can be retrieved', async () => {
   for (const event of completed.scenario.events) {
     assert.ok(userIds.has(event.actor_user_id))
     assert.ok(deviceIds.has(event.device_id))
+  }
+
+  for (const step of completed.scenario.ground_truth.attack_chain) {
+    assert.ok(
+      completed.scenario.events.some((event) => event.id === step.event_id),
+    )
   }
 })
 
@@ -151,6 +158,79 @@ test('equivalent API jobs return deterministic scenario content', async () => {
 
   assert.notEqual(first.id, second.id)
   assert.deepEqual(first.scenario, second.scenario)
+})
+
+test('POST /validate reports a completed scenario as valid', async () => {
+  const accepted = await request(app)
+    .post('/api/scenarios')
+    .send(validConfig)
+  await waitForCompletion(accepted.body.id)
+
+  const response = await request(app).post(
+    `/api/scenarios/${accepted.body.id}/validate`,
+  )
+
+  assert.equal(response.status, 200)
+  assert.deepEqual(response.body, {
+    id: accepted.body.id,
+    status: 'completed',
+    valid: true,
+    errors: [],
+  })
+})
+
+test('POST /validate reports invariant errors in stored data', async () => {
+  await Scenario.create({
+    id: 'scenario-invalid',
+    scenarioType: validConfig.scenario,
+    requestedUsers: validConfig.users,
+    requestedDevices: validConfig.devices,
+    requestedEvents: validConfig.events,
+    seed: validConfig.seed,
+    status: 'completed',
+  })
+
+  const response = await request(app).post(
+    '/api/scenarios/scenario-invalid/validate',
+  )
+
+  assert.equal(response.status, 200)
+  assert.equal(response.body.valid, false)
+  assert.ok(response.body.errors.length > 0)
+})
+
+test('POST /validate rejects a scenario that is not completed', async () => {
+  await Scenario.create({
+    id: 'scenario-pending',
+    scenarioType: validConfig.scenario,
+    requestedUsers: validConfig.users,
+    requestedDevices: validConfig.devices,
+    requestedEvents: validConfig.events,
+    seed: validConfig.seed,
+    status: 'pending',
+  })
+
+  const response = await request(app).post(
+    '/api/scenarios/scenario-pending/validate',
+  )
+
+  assert.equal(response.status, 409)
+  assert.deepEqual(response.body, {
+    error: 'scenario_not_completed',
+    message: 'Scenario scenario-pending has status pending',
+  })
+})
+
+test('POST /validate returns 404 for an unknown scenario', async () => {
+  const response = await request(app).post(
+    '/api/scenarios/does-not-exist/validate',
+  )
+
+  assert.equal(response.status, 404)
+  assert.deepEqual(response.body, {
+    error: 'scenario_not_found',
+    message: 'Scenario does-not-exist was not found',
+  })
 })
 
 test.todo('returns running while generation is in progress')
